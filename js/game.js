@@ -1,71 +1,85 @@
-var myGamePiece;
+(function() {
+    var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+    window.requestAnimationFrame = requestAnimationFrame;
+})();
 
-function startGame() {
-    myGameArea.start();
-    myGamePiece = new component(30, 30, "red", 100, 240);
-}
+var canvas = document.getElementById("canvas"),
+    ctx = canvas.getContext("2d"),
+    width = 500,
+    height = 200,
+    player = {
+      x : width/5,
+      y : height - 5,
+      width : 15,
+      height : 15,
+      speed: 3,
+      velX: 0,
+      velY: 0,
+      jumping: false
+    },
+    keys = [],
+    friction = 0.8,
+    gravity = 0.3;
 
-var myGameArea = {
-    canvas : document.createElement("canvas"),
-    start : function() {
-        this.canvas.width = 480;
-        this.canvas.height = 270;
-        this.context = this.canvas.getContext("2d");
-        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
-        this.interval = setInterval(updateGameArea, 20);
-        window.addEventListener('keydown', function (e) {
-            myGameArea.keys = (myGameArea.keys || []);
-            myGameArea.keys[e.keyCode] = (e.type == "keydown");
-        })
-        window.addEventListener('keyup', function (e) {
-            myGameArea.keys[e.keyCode] = (e.type == "keydown");            
-        })
-    }, 
-    clear : function(){
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-}
+canvas.width = width;
+canvas.height = height;
 
-function component(width, height, color, x, y) {
-    this.gamearea = myGameArea;
-    this.width = width;
-    this.height = height;
-    this.speedX = 0;
-    this.speedY = 0;    
-    this.x = x;
-    this.y = y;
-    this.jump = this.speedY;
-    this.gravity = 0.05;
-    this.gravitySpeed = 0;
-    this.update = function() {
-        ctx = myGameArea.context;
-        ctx.fillStyle = color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+function update(){
+  // check keys
+    if (keys[38] || keys[32]) {
+        // up arrow or space
+      if(!player.jumping){
+       player.jumping = true;
+       player.velY = -player.speed*2;
+      }
     }
-    this.newPos = function() {
-        this.gravitySpeed += this.gravity;
-        this.x += this.speedX;
-        this.y += this.speedY + this.gravitySpeed; 
-        this.hitBottom();       
-    }
-    this.hitBottom = function() {
-        var rockbottom = myGameArea.canvas.height - this.height;
-        if (this.y > rockbottom) {
-            this.y = rockbottom;
+    if (keys[39]) {
+        // right arrow
+        if (player.velX < player.speed) {
+            player.velX++;
         }
     }
+    if (keys[37]) {
+        // left arrow
+        if (player.velX > -player.speed) {
+            player.velX--;
+        }
+    }
+   
+    player.velX *= friction;
+   
+    player.velY += gravity;
+  
+    player.x += player.velX;
+    player.y += player.velY;
+    
+    if (player.x >= width-player.width) {
+        player.x = width-player.width;
+    } else if (player.x <= 0) {
+        player.x = 0;
+    }
+
+    if(player.y >= height - player.height){
+        player.y = height - player.height;
+        player.jumping = false;
+    }
+  
+  ctx.clearRect(0,0,width,height);
+  ctx.fillStyle = "red";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+    
+  requestAnimationFrame(update);
 }
 
-function updateGameArea() {
-    myGameArea.clear();
-    myGamePiece.speedX = 0;
-    myGamePiece.speedY = 0;    
-    if (myGameArea.keys && myGameArea.keys[37]) {myGamePiece.speedX = -3; }
-    if (myGameArea.keys && myGameArea.keys[39]) {myGamePiece.speedX = 3; }
-    if (myGameArea.keys && myGameArea.keys[38]) {myGamePiece.speedY = -3; }
-    if (myGameArea.keys && myGameArea.keys[40]) {myGamePiece.speedY = 3; }
-    if (myGameArea.keys && myGameArea.keys[16] && myGameArea.keys[37]) {myGamePiece.speedX = myGamePiece.speedX -3; }
-    if (myGameArea.keys && myGameArea.keys[16] && myGameArea.keys[39]) {myGamePiece.speedX = myGamePiece.speedX +3; }
-    myGamePiece.newPos();    
-    myGamePiece.update();
-}
+document.body.addEventListener("keydown", function(e) {
+    keys[e.keyCode] = true;
+});
+
+document.body.addEventListener("keyup", function(e) {
+    keys[e.keyCode] = false;
+});
+
+
+window.addEventListener("load",function(){
+    update();
+});
